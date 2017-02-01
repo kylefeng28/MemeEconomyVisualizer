@@ -15,3 +15,5 @@ Inspiration: http://www.nytimes.com/interactive/2012/02/13/us/politics/2013-budg
 [ ] Drag to move viewport
 [ ] Inverse view (fewer shares -> bigger size)
 [ ] Update real time
+[ ] Buy/sell multiple
+[ ] User stats

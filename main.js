@@ -171,6 +171,7 @@ function onclick(d) {
 	// Prevent right click context menu (TODO: does not work)
 	// d3.event.preventDefault();
 	var cmd = prompt("Buy or sell?").toLowerCase();
+	// var n = parseInt(prompt("How many?"), 10);
 	switch (cmd) {
 		case "buy": buyMeme(d.name); break;
 		case "sell": sellMeme(d.name); break;
@@ -233,14 +234,16 @@ function hideTooltip() {
 var iframe = d3.select("body").append("iframe").node();
 
 // Buy meme
-function buyMeme(meme) {
+function buyMeme(meme, n) {
+	n = n || 1;
 	var get_url = "http://hgreer.com/meme/buy?meme="+meme;
 	iframe.src = get_url;
 	alert("Bought meme: " + meme);
 }
 
 // Sell meme
-function sellMeme(meme) {
+function sellMeme(meme, n) {
+	n = n || 1;
 	var get_url = "http://hgreer.com/meme/sell?meme="+meme;
 	iframe.src = get_url;
 	alert("Sold meme: " + meme);
