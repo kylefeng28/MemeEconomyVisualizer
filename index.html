@@ -1,0 +1,189 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+
+.links line {
+	stroke: #999;
+	stroke-opacity: 0.6;
+}
+
+.nodes circle {
+	stroke: #fff;
+	stroke-width: 1.5px;
+}
+
+</style>
+<svg width="960" height="600"></svg>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+var svg = d3.select("svg"),
+	width = +svg.attr("width"),
+	height = +svg.attr("height");
+
+// TODO: zoom, pan
+// Zoom
+svg.call(d3.zoom().on("zoom", function () {
+	// svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
+}));
+
+var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+// Force directed graph simulation
+var simulation = d3.forceSimulation()
+	.force("link", d3.forceLink().id((d) => d.id))
+	// .force("charge", d3.forceManyBody())
+	.force("center", d3.forceCenter(width / 2, height / 2));
+
+// Tooltip
+var tooltip = d3.select("body")
+	.append("div")
+	.style("position", "absolute")
+	.style("z-index", "10")
+	.style("visibility", "hidden")
+
+// Fetch data from JSON
+	d3.json("http://hgreer.com/meme/stocks", function (error, json) {
+		if (error) throw error;
+
+		// Scrape JSON into a list of stocks of { name, count }
+		var data = [];
+		Object.entries(json).forEach(([key, value]) => {
+			var stock = { name: key, count: value };
+			data.push(stock);
+		});
+
+		/*
+		// Create link
+		var link = svg.append("g")
+		.attr("class", "links")
+		.selectAll("line")
+		.data(graph.links)
+		.enter().append("line")
+		.attr("stroke-width", (d) => Math.sqrt(d.value));
+		 */
+
+		// Create node
+		var node = svg.append("g")
+			.attr("class", "nodes")
+			.selectAll("circle")
+			.data(data)
+			.enter().append("circle");
+
+		// Title (on hover)
+		node.append("title")
+			.text((d) => d.name);
+
+		// Size and color
+		node.attr("r", (d) => d.count )
+			.attr("fill", (d) => {
+				d.color = color(d.name);
+				d.color_hover = color(d.name+1); // change it a bit TODO
+				return d.color;
+			});
+
+		// Mouse events
+		node.call(d3.drag()
+				.on("start", ondragstart)
+				.on("drag", ondrag)
+				.on("end", ondragend))
+		.on("mouseover", onmouseover)
+		.on("mouseout", onmouseout)
+		.on("mousemove", onmousemove)
+		.on("click", onclick);
+
+		simulation
+			.nodes(data)
+			.on("tick", ontick);
+
+		/* simulation.force("link")
+		   .links(graph.links);
+		 */
+
+		function ontick() {
+			// Update values
+			/*
+			   link
+			   .attr("x1", (d) => d.source.x)
+			   .attr("y1", (d) => d.source.y)
+			   .attr("x2", (d) => d.target.x)
+			   .attr("y2", (d) => d.target.y);
+			 */
+
+			node
+				.attr("cx", (d) => d.x)
+				.attr("cy", (d) => d.y);
+		}
+	});
+
+/* Events */
+function ondragstart(d) {
+	if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+	d.fx = d.x;
+	d.fy = d.y;
+}
+
+function ondrag(d) {
+	d.fx = d3.event.x;
+	d.fy = d3.event.y;
+	moveTooltip(d);
+}
+
+function ondragend(d) {
+	if (!d3.event.active) simulation.alphaTarget(0);
+	d.fx = null;
+	d.fy = null;
+}
+
+function onmouseover(d) {
+	d3.select(this).transition()
+		.attr("stroke", (d) => d.color_hover)
+		.attr("stroke-width", 10)
+		.attr("r", (d) => d.count * 1.2);
+	showTooltip(d);
+}
+
+function onmouseout(d) {
+	d3.select(this).transition()
+		.attr("stroke", (d) => d.color)
+		.attr("stroke-width", 0)
+		.attr("r", (d) => d.count);
+	hideTooltip();
+}
+
+function onmousemove(d) {
+	moveTooltip(d);
+}
+
+function onclick(d) {
+	// TODO: Buy on left click, sell on right click
+	buyMeme(d.name);
+}
+
+/* Helpers */
+function showTooltip(d) {
+	tooltip.style("visibility", "visible");
+	tooltip.html("<b>"+d.name+"</b><br>"+d.count);
+}
+
+function moveTooltip(d) {
+	// TODO put directly above node
+	tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");
+}
+
+function hideTooltip() {
+	tooltip.style("visibility", "hidden");
+}
+
+/* Business logic */
+function buyMeme(meme) {
+	var get_url = "http://hgreer.com/meme/buy";
+	d3.request(get_url)
+		.get("meme="+meme, function(error, data) {
+			if (error) throw error;
+			alert("Bought meme: " + meme);
+		});
+}
+
+
+</script>
