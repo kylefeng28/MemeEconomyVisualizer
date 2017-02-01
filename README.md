@@ -8,7 +8,10 @@ Inspiration: http://www.nytimes.com/interactive/2012/02/13/us/politics/2013-budg
 
 ## TODO
 [ ] Clean up code
+[ ] Bar graph
 [ ] Gravity
 [ ] Pretty hover tooltip
 [ ] Click to buy
 [ ] Drag to move viewport
+[ ] Inverse view (fewer shares -> bigger size)
+[ ] Update real time
