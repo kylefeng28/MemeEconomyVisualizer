@@ -11,6 +11,19 @@ svg.call(d3.zoom().on("zoom", function () {
 // TODO more colors
 var color = d3.scaleOrdinal(d3.schemeCategory20);
 
+var menu = [
+{
+	title: "Buy stock",
+	action: (elm, d, i) => { buyMeme(d.name); }
+},
+{ divider: true },
+{
+	title: "Sell stock",
+	action: (elm, d, i) => { sellMeme(d.name); }
+},
+];
+
+
 // Force directed graph simulation
 var simulation = d3.forceSimulation()
 	.force("link", d3.forceLink().id((d) => d.id))
@@ -21,12 +34,18 @@ var simulation = d3.forceSimulation()
 // Tooltip
 var tooltip = d3.select("body")
 	.append("div")
+	.attr("class", "d3-tip")
 	.style("position", "absolute")
 	.style("z-index", "10")
 	.style("visibility", "hidden");
 
-// Fetch data from JSON
-// function getData() {
+// onready
+$(document).ready(function() {
+	// Fetch data from JSON
+	getData();
+});
+
+function getData() {
 	d3.json("http://hgreer.com/meme/stocks", function (error, json) {
 		if (error) throw error;
 
@@ -48,31 +67,11 @@ var tooltip = d3.select("body")
 			.attr("class", "nodes")
 			.selectAll("circle")
 			.data(data)
-			.enter().append("circle");
+			.enter().append("circle")
+			.attr("class", "node")
+			.attr("data-box-id", "stock-menu");
 
-		node.each(((d) => {
-				d.color = color(d.name);
-				d.color_hover = color(d.name+1); // change it a bit TODO
-				d.radius = d.count;
-		}));
-
-		// Title (on hover)
-		node.append("title")
-			.text((d) => d.name);
-
-		// Size and color
-		node.attr("r", (d) => d.radius )
-			.attr("fill", (d) => d.color);
-
-		// Mouse events
-		node.call(d3.drag()
-				.on("start", ondragstart)
-				.on("drag", ondrag)
-				.on("end", ondragend))
-		.on("mouseover", onmouseover)
-		.on("mouseout", onmouseout)
-		.on("mousemove", onmousemove)
-		.on("click", onclick);
+		updateNode(node);
 
 		simulation
 			.nodes(data)
@@ -97,9 +96,7 @@ var tooltip = d3.select("body")
 				.attr("cy", (d) => d.y);
 		}
 	});
-
-//	return data;
-// }
+}
 
 function updateData() {
 	d3.json("http://hgreer.com/meme/stocks", function (error, json) {
@@ -108,22 +105,20 @@ function updateData() {
 		// Scrape data
 		var data = scrapeJSON(json);
 
-		// Update nodes
+		// Update nodes and add new ones as needed
 		var node = svg.select("g")
 			.selectAll("circle")
 			.data(data)
-			.enter().append("circle");
-
-		console.log(node)
+			// .enter().append("circle"); // don't use this
 
 		updateNode(node);
+
 		node.each((d) => {
 			console.log(d.radius)
 		})
 
 		simulation.nodes(data);
 
-		// TODO update nodes, and new ones as needed
 	});
 }
 
@@ -167,42 +162,34 @@ function onmousemove(d) {
 }
 
 function onclick(d) {
-	// Buy on left click, sell on right click
-	// Prevent right click context menu (TODO: does not work)
-	// d3.event.preventDefault();
-	var cmd = prompt("Buy or sell?").toLowerCase();
-	// var n = parseInt(prompt("How many?"), 10);
-	switch (cmd) {
-		case "buy": buyMeme(d.name); break;
-		case "sell": sellMeme(d.name); break;
-	}
-	return false;
 }
 
 /* Helpers */
-// Scrape JSON into a list of stocks of { name, count }
+// Scrape JSON into a list of stocks of { name, price }
 function scrapeJSON(json) {
 	var data = [];
 	Object.entries(json).forEach(([key, value]) => {
-		var stock = { name: key, count: value };
+		var stock = { name: key, price: value };
 		data.push(stock);
 	});
 	return data;
 }
 
 function updateNode(node) {
-	node.each(((d) => {
-			d.color = color(d.name);
-			d.color_hover = color(d.name+1); // change it a bit TODO
-			d.radius = d.count;
-	}));
+	// Set cutom properties
+	// Don't use arrow function => because `this` is rebound
+	node.each(function (d, i, nodes) {
+		d.color = color(d.name);
+		d.color_hover = color(d.name+1); // change it a bit TODO
+		d.radius = d.price;
+	});
 
 	// Title (on hover)
 	node.append("title")
 		.text((d) => d.name);
 
 	// Size and color
-	node.attr("r", (d) => d.radius )
+	node.attr("r", (d) => d.radius)
 		.attr("fill", (d) => d.color);
 
 	// Mouse events
@@ -210,15 +197,20 @@ function updateNode(node) {
 			.on("start", ondragstart)
 			.on("drag", ondrag)
 			.on("end", ondragend))
-	.on("mouseover", onmouseover)
-	.on("mouseout", onmouseout)
-	.on("mousemove", onmousemove)
-	.on("click", onclick);
+		.on("mouseover", onmouseover)
+		.on("mouseout", onmouseout)
+		.on("mousemove", onmousemove)
+		// .on("click", onclick);
+		.on("contextmenu", d3.contextMenu(menu, {
+			onOpen: () => { },
+			onClose: () => { }
+		}));
 };
 
 function showTooltip(d) {
-	tooltip.style("visibility", "visible");
-	tooltip.html("<b>"+d.name+"</b><br>"+d.count);
+	var html = "<strong>Stock:</strong> <span style='color:red'>" + d.name + "</span><br>";
+	html += "<strong>Price:</strong> <span style='color:red'>" + d.price + "</span><br>";
+	tooltip.style("visibility", "visible").html(html);
 }
 
 function moveTooltip(d) {
